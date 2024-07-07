@@ -15,7 +15,7 @@ jobs:
       matrix:
         config:
           - {os: macos-14, pow_version: 0.2.2, arch: x86_64}
-          - {os: macos-14, pow_version: 0.2.2, arch: arm64}
+          # - {os: macos-14, pow_version: 0.2.2, arch: arm64}
 
     steps:
     - name: Set up build environment
@@ -123,7 +123,6 @@ jobs:
 
     - name: Build Miner
       run: |
-        brew uninstall curl
         export ACLOCAL_PATH="$(pwd)/m4:$ACLOCAL_PATH"
         echo $ACLOCAL_PATH
         ./autogen.sh
@@ -131,29 +130,42 @@ jobs:
         POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
         CURL_DIR=/usr/local
         
-        # Adjust CPPFLAGS and LDFLAGS to include curl paths
-        export CPPFLAGS="$CPPFLAGS -I$CURL_DIR/include"
-        export LDFLAGS="$LDFLAGS -L$CURL_DIR/lib"
-        
         # Debug information
         echo "==== Debug Info ===="
         echo "CURL_DIR: $CURL_DIR"
         echo "curl-config location: $(which curl-config)"
         echo "curl-config version: $(curl-config --version)"
         echo "curl-config libs: $(curl-config --libs)"
-        
-        ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CPPFLAGS" \
-                    LDFLAGS="$LDFLAGS -L$CURL_DIR/lib" \
-                    LIBS="-L$POW_HOME/build -lrandomx -L$CURL_DIR/lib  -lcurl -lz" \
+        echo "curl-config static-libs: $(curl-config --static-libs)"
+        echo "libcurl.a location: $(find $CURL_DIR -name libcurl.a)"
+        echo "CPPFLAGS: $CPPFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "===================="
+
+        PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
+        ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
+                    LDFLAGS="$LDFLAGS -L$CURL_DIR/lib -framework CoreFoundation -framework SystemConfiguration" \
+                    LIBS="-L$POW_HOME/build -lrandomx -lcurl -lz" \
+                    LIBCURL_CFLAGS="-I$CURL_DIR/include" \
+                    LIBCURL_LIBS="-L$CURL_DIR/lib -lcurl -framework CoreFoundation -framework SystemConfiguration" \
+                    CURL_CONFIG=$CURL_DIR/bin/curl-config \
                     --host=${{ matrix.config.arch }}-apple-darwin \
                     --with-libcurl=$CURL_DIR
+        
+        # If configure fails, print config.log
+        if [ $? -ne 0 ]; then
+          echo "Configure failed. Contents of config.log:"
+          cat config.log
+        else
+          make -j$(sysctl -n hw.logicalcpu)
+        fi
     - name: Upload config.log
       if: failure() # Only run this step if a previous step failed
       uses: actions/upload-artifact@v2
       with:
         name: config.log
         path: ./config.log
-        
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:

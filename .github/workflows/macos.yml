@@ -69,8 +69,11 @@ jobs:
         sudo rm -f /usr/local/bin/pydoc3
         sudo rm -f /usr/local/bin/python3
         sudo rm -f /usr/local/bin/python3-config
-        sudo ln -s $pythonLocation/bin/python3 /usr/local/bin/python3
-        sudo ln -s $pythonLocation/bin/pip3 /usr/local/bin/pip3
+        sudo ln -sf $pythonLocation/bin/python3 /usr/local/bin/python3
+        if [ -L /usr/local/bin/pip3 ]; then
+          sudo rm -f /usr/local/bin/pip3
+        fi
+        sudo ln -sf $pythonLocation/bin/pip3 /usr/local/bin/pip3
 
     - name: Configure build environment
       run: |

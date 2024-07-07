@@ -20,6 +20,11 @@ jobs:
         echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
         echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
 
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
     - name: Install dependencies
       run: |
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
@@ -34,10 +39,15 @@ jobs:
           brew link --force curl
         fi
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
+    - name: Manage Python symlinks
+      run: |
+        sudo rm -f /usr/local/bin/2to3
+        sudo rm -f /usr/local/bin/idle3
+        sudo rm -f /usr/local/bin/pydoc3
+        sudo rm -f /usr/local/bin/python3
+        sudo rm -f /usr/local/bin/python3-config
+        sudo ln -s $pythonLocation/bin/python3 /usr/local/bin/python3
+        sudo ln -s $pythonLocation/bin/pip3 /usr/local/bin/pip3
 
     - name: Configure build environment
       run: |

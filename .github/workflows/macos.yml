@@ -15,9 +15,24 @@ jobs:
         pow_version: [0.2.2]
 
     steps:
+    - name: Set up environment
+      run: |
+        echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+        echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: |
-        brew install curl git cmake automake autoconf libtool pkg-config llvm
+        if [ "${{ matrix.arch }}" == "x86_64" ]; then
+          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.bash_profile
+          eval "$(/usr/local/bin/brew shellenv)"
+          arch -x86_64 brew install curl git cmake automake autoconf libtool pkg-config llvm openssl
+        else
+          brew install curl git cmake automake autoconf libtool pkg-config llvm openssl
+        fi
+
+    - name: Build pow dependency
+      run: |
         curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{ matrix.pow_version }} -o pow.zip
         POW_HOME=$HOME/pow
         mkdir -p $POW_HOME
@@ -28,11 +43,10 @@ jobs:
         ARCH=${{ matrix.arch }}
         cmake -DCMAKE_OSX_ARCHITECTURES=$ARCH \
           -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
-          -DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk \
-          -DCMAKE_C_FLAGS="-target $ARCH-apple-macos11.0" \
-          -DCMAKE_CXX_FLAGS="-target $ARCH-apple-macos11.0" \
-          -DCMAKE_EXE_LINKER_FLAGS="-target $ARCH-apple-macos11.0" ..
-
+          -DCMAKE_OSX_SYSROOT=$SDKROOT \
+          -DCMAKE_C_FLAGS="-arch $ARCH" \
+          -DCMAKE_CXX_FLAGS="-arch $ARCH" \
+          -DCMAKE_EXE_LINKER_FLAGS="-arch $ARCH" ..
         make -j$(sysctl -n hw.logicalcpu)
         ls $POW_HOME/pow-${{ matrix.pow_version }}/build
 
@@ -50,9 +64,22 @@ jobs:
         POW_HOME=$HOME/pow/pow-${{ matrix.pow_version }}
         ls $POW_HOME
         ls $POW_HOME/build
-        ./configure CPPFLAGS="-I$POW_HOME/src" LIBS="-L$POW_HOME/build -lrandomx -lcurl" \
+        if [ "${{ matrix.arch }}" == "x86_64" ]; then
+          export PATH="/usr/local/opt/curl/bin:$PATH"
+          export PKG_CONFIG_PATH="/usr/local/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LDFLAGS="-L/usr/local/opt/curl/lib -L/usr/local/opt/openssl/lib"
+          export CPPFLAGS="-I/usr/local/opt/curl/include -I/usr/local/opt/openssl/include"
+        else
+          export PATH="/opt/homebrew/opt/curl/bin:$PATH"
+          export PKG_CONFIG_PATH="/opt/homebrew/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LDFLAGS="-L/opt/homebrew/opt/curl/lib -L/opt/homebrew/opt/openssl/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/curl/include -I/opt/homebrew/opt/openssl/include"
+        fi
+        export CC="clang -arch ${{ matrix.arch }}"
+        export CXX="clang++ -arch ${{ matrix.arch }}"
+        ./configure CPPFLAGS="$CPPFLAGS -I$POW_HOME/src" LIBS="-L$POW_HOME/build -lrandomx -lcurl" \
                     CFLAGS="-arch ${{ matrix.arch }}" CXXFLAGS="-arch ${{ matrix.arch }}" \
-                    LDFLAGS="-arch ${{ matrix.arch }}"
+                    LDFLAGS="$LDFLAGS -arch ${{ matrix.arch }}"
         make -j$(sysctl -n hw.logicalcpu)
 
     - name: Upload artifact

@@ -26,10 +26,35 @@ jobs:
           arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.bash_profile
           eval "$(/usr/local/bin/brew shellenv)"
-          arch -x86_64 brew install curl git cmake automake autoconf libtool pkg-config llvm openssl
+          arch -x86_64 brew install cmake automake autoconf libtool pkg-config llvm openssl
+          arch -x86_64 brew install curl --force
+          arch -x86_64 brew link --force curl
         else
-          brew install curl git cmake automake autoconf libtool pkg-config llvm openssl
+          brew install cmake automake autoconf libtool pkg-config llvm openssl curl
+          brew link --force curl
         fi
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Configure build environment
+      run: |
+        if [ "${{ matrix.arch }}" == "x86_64" ]; then
+          echo 'export PATH="/usr/local/opt/curl/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+          echo 'export LDFLAGS="-L/usr/local/opt/curl/lib -L/usr/local/opt/llvm/lib -L/usr/local/opt/llvm/lib/c++"' >> ~/.bash_profile
+          echo 'export CPPFLAGS="-I/usr/local/opt/curl/include -I/usr/local/opt/llvm/include"' >> ~/.bash_profile
+          echo 'export PKG_CONFIG_PATH="/usr/local/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"' >> ~/.bash_profile
+        else
+          echo 'export PATH="/opt/homebrew/opt/curl/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+          echo 'export LDFLAGS="-L/opt/homebrew/opt/curl/lib -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/c++"' >> ~/.bash_profile
+          echo 'export CPPFLAGS="-I/opt/homebrew/opt/curl/include -I/opt/homebrew/opt/llvm/include"' >> ~/.bash_profile
+          echo 'export PKG_CONFIG_PATH="/opt/homebrew/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"' >> ~/.bash_profile
+        fi
+        source ~/.bash_profile
 
     - name: Build pow dependency
       run: |
@@ -57,6 +82,7 @@ jobs:
 
     - name: Build Miner
       run: |
+        source ~/.bash_profile
         export ACLOCAL_PATH="$(pwd)/m4:$ACLOCAL_PATH"
         echo $ACLOCAL_PATH
         ./autogen.sh
@@ -64,22 +90,11 @@ jobs:
         POW_HOME=$HOME/pow/pow-${{ matrix.pow_version }}
         ls $POW_HOME
         ls $POW_HOME/build
-        if [ "${{ matrix.arch }}" == "x86_64" ]; then
-          export PATH="/usr/local/opt/curl/bin:$PATH"
-          export PKG_CONFIG_PATH="/usr/local/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"
-          export LDFLAGS="-L/usr/local/opt/curl/lib -L/usr/local/opt/openssl/lib"
-          export CPPFLAGS="-I/usr/local/opt/curl/include -I/usr/local/opt/openssl/include"
-        else
-          export PATH="/opt/homebrew/opt/curl/bin:$PATH"
-          export PKG_CONFIG_PATH="/opt/homebrew/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"
-          export LDFLAGS="-L/opt/homebrew/opt/curl/lib -L/opt/homebrew/opt/openssl/lib"
-          export CPPFLAGS="-I/opt/homebrew/opt/curl/include -I/opt/homebrew/opt/openssl/include"
-        fi
         export CC="clang -arch ${{ matrix.arch }}"
         export CXX="clang++ -arch ${{ matrix.arch }}"
         ./configure CPPFLAGS="$CPPFLAGS -I$POW_HOME/src" LIBS="-L$POW_HOME/build -lrandomx -lcurl" \
                     CFLAGS="-arch ${{ matrix.arch }}" CXXFLAGS="-arch ${{ matrix.arch }}" \
-                    LDFLAGS="$LDFLAGS -arch ${{ matrix.arch }}"
+                    LDFLAGS="$LDFLAGS -arch ${{ matrix.arch }} -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
         make -j$(sysctl -n hw.logicalcpu)
 
     - name: Upload artifact

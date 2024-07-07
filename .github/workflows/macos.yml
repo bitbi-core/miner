@@ -123,6 +123,7 @@ jobs:
 
     - name: Build Miner
       run: |
+        brew uninstall curl
         export ACLOCAL_PATH="$(pwd)/m4:$ACLOCAL_PATH"
         echo $ACLOCAL_PATH
         ./autogen.sh

@@ -7,31 +7,27 @@ on:
 
 jobs:
   build-macos:
-
     timeout-minutes: 5
-    runs-on: ${{ matrix.config.os }}
-
+    runs-on: macos-14
     strategy:
       matrix:
-        config:
-          - {os: macos-13, pow_version: 0.2.2}
-          - {os: macos-14, pow_version: 0.2.2}
+        arch: [x86_64, arm64]
+        pow_version: [0.2.2]
 
     steps:
     - name: Install dependencies
       run: |
         brew install curl git cmake automake autoconf libtool pkg-config
-        curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
+        curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{ matrix.pow_version }} -o pow.zip
         POW_HOME=$HOME/pow
         mkdir -p $POW_HOME
         unzip pow.zip -d $POW_HOME
-        cd $POW_HOME/pow-${{matrix.config.pow_version}}
+        cd $POW_HOME/pow-${{ matrix.pow_version }}
         mkdir build
         cd build
-        cmake ..
+        cmake -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} ..
         make -j$(sysctl -n hw.logicalcpu)
-        ls $POW_HOME/pow-${{matrix.config.pow_version}}/build
-
+        ls $POW_HOME/pow-${{ matrix.pow_version }}/build
 
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -44,14 +40,16 @@ jobs:
         echo $ACLOCAL_PATH
         ./autogen.sh
         ./nomacro.pl
-        POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
+        POW_HOME=$HOME/pow/pow-${{ matrix.pow_version }}
         ls $POW_HOME
         ls $POW_HOME/build
-        ./configure CPPFLAGS=" -I$POW_HOME/src " LIBS="-L$POW_HOME/build -lrandomx  -lcurl"
+        ./configure CPPFLAGS="-I$POW_HOME/src" LIBS="-L$POW_HOME/build -lrandomx -lcurl" \
+                    CFLAGS="-arch ${{ matrix.arch }}" CXXFLAGS="-arch ${{ matrix.arch }}" \
+                    LDFLAGS="-arch ${{ matrix.arch }}"
         make -j$(sysctl -n hw.logicalcpu)
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: macos-${{ matrix.config.os }}
+        name: macos-14-${{ matrix.arch }}
         path: ./minerd

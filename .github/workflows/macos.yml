@@ -106,6 +106,15 @@ jobs:
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..
+        echo "======debug====="
+        # Verify installation
+        echo "Curl version:"
+        /usr/local/bin/curl --version
+        echo "Curl-config version:"
+        /usr/local/bin/curl-config --version
+        echo "Curl static libs:"
+        /usr/local/bin/curl-config --static-libs
+        echo "======debug end====="
 
     - name: Checkout repository
       uses: actions/checkout@v4

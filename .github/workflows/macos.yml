@@ -22,13 +22,20 @@ jobs:
       run: |
         sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
         if [ "${{ matrix.config.arch }}" == "arm64" ]; then
-          echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+          echo "SDKROOT=$(xcrun -sdk macosx11.3 --show-sdk-path)" >> $GITHUB_ENV
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
+          echo "CFLAGS=-arch arm64" >> $GITHUB_ENV
+          echo "CXXFLAGS=-arch arm64" >> $GITHUB_ENV
+          echo "LDFLAGS=-arch arm64" >> $GITHUB_ENV
         else
-          echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+          echo "SDKROOT=$(xcrun -sdk macosx10.15 --show-sdk-path)" >> $GITHUB_ENV
           echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+          echo "CFLAGS=-arch x86_64" >> $GITHUB_ENV
+          echo "CXXFLAGS=-arch x86_64" >> $GITHUB_ENV
+          echo "LDFLAGS=-arch x86_64" >> $GITHUB_ENV
         fi
         echo "ARCH=${{ matrix.config.arch }}" >> $GITHUB_ENV
+
 
     - name: Install dependencies
       run: |

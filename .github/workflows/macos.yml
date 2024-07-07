@@ -122,6 +122,11 @@ jobs:
         ls $POW_HOME
         ls $POW_HOME/build
         CURL_DIR=/usr/local
+        echo "======debug====="
+        echo "CURL_LIB file: `ls $CURL_DIR/lib/*curl*`"
+        echo "CURL_INCLUDE file: `ls $CURL_DIR/include/*curl*`"
+        echo "======debug end====="
+        CURL_CONFIG=$CURL_DIR/bin/curl-config \
         PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
         ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
                     LDFLAGS="$LDFLAGS -L$CURL_DIR/lib" \
@@ -130,6 +135,7 @@ jobs:
                     LIBCURL_LIBS="-L$CURL_DIR/lib -lcurl" \
                     --host=${{ matrix.config.arch }}-apple-darwin \
                     --with-libcurl=$CURL_DIR
+
         make -j$(sysctl -n hw.logicalcpu)
 
     - name: Upload artifact

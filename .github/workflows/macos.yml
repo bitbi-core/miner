@@ -15,7 +15,7 @@ jobs:
       matrix:
         config:
           - {os: macos-14, pow_version: 0.2.2, arch: x86_64}
-          # - {os: macos-14, pow_version: 0.2.2, arch: arm64}
+          - {os: macos-14, pow_version: 0.2.2, arch: arm64}
 
     steps:
     - name: Set up build environment

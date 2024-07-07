@@ -121,7 +121,15 @@ jobs:
         POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
         ls $POW_HOME
         ls $POW_HOME/build
-        ./configure CPPFLAGS="-I$POW_HOME/src -I/usr/local/include $CFLAGS" LDFLAGS="$LDFLAGS -L/usr/local/lib" LIBS="-L$POW_HOME/build -lrandomx -lcurl" --host=${{ matrix.config.arch }}-apple-darwin
+        CURL_DIR=/usr/local
+        PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
+        ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
+                    LDFLAGS="$LDFLAGS -L$CURL_DIR/lib" \
+                    LIBS="-L$POW_HOME/build -lrandomx -lcurl -lz" \
+                    LIBCURL_CFLAGS="-I$CURL_DIR/include" \
+                    LIBCURL_LIBS="-L$CURL_DIR/lib -lcurl" \
+                    --host=${{ matrix.config.arch }}-apple-darwin \
+                    --with-libcurl=$CURL_DIR
         make -j$(sysctl -n hw.logicalcpu)
 
     - name: Upload artifact

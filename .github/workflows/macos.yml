@@ -20,52 +20,6 @@ jobs:
         echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
         echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
-
-    - name: Manage Python symlinks
-      run: |
-        sudo rm -f /usr/local/bin/2to3
-        sudo rm -f /usr/local/bin/idle3
-        sudo rm -f /usr/local/bin/pydoc3
-        sudo rm -f /usr/local/bin/python3
-        sudo rm -f /usr/local/bin/python3-config
-        sudo rm -f /usr/local/bin/pip3
-        sudo ln -sf $(brew --prefix python@3.12)/bin/python3 /usr/local/bin/python3
-        sudo ln -sf $(brew --prefix python@3.12)/bin/pip3 /usr/local/bin/pip3
-  
-    - name: Debug Python installation
-      run: |
-        which python3
-        python3 --version
-        which pip3
-        pip3 --version
-        echo $PATH
-        ls -l /usr/local/bin | grep python
-        ls -l /usr/local/bin | grep pip
-        
-    - name: Install dependencies
-      run: |
-        if [ "${{ matrix.arch }}" == "x86_64" ]; then
-          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.bash_profile
-          eval "$(/usr/local/bin/brew shellenv)"
-          arch -x86_64 brew install cmake automake autoconf libtool pkg-config llvm openssl
-          arch -x86_64 brew install curl --force
-          arch -x86_64 brew link --force curl
-          arch -x86_64 brew install python@3.12
-          arch -x86_64 brew link --overwrite python@3.12
-        else
-          brew install cmake automake autoconf libtool pkg-config llvm openssl curl
-          brew link --force curl
-          brew install python@3.12
-          brew link --overwrite python@3.12
-        fi
-
-
-
 
     - name: Install dependencies
       run: |
@@ -73,11 +27,11 @@ jobs:
           arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.bash_profile
           eval "$(/usr/local/bin/brew shellenv)"
-          arch -x86_64 brew install cmake automake autoconf libtool pkg-config llvm openssl
+          arch -x86_64 brew install python cmake automake autoconf libtool pkg-config llvm openssl
           arch -x86_64 brew install curl --force
           arch -x86_64 brew link --force curl
         else
-          brew install cmake automake autoconf libtool pkg-config llvm openssl curl
+          brew install python cmake automake autoconf libtool pkg-config llvm openssl curl
           brew link --force curl
         fi
 

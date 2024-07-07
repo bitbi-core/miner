@@ -25,6 +25,27 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Manage Python symlinks
+      run: |
+        sudo rm -f /usr/local/bin/2to3
+        sudo rm -f /usr/local/bin/idle3
+        sudo rm -f /usr/local/bin/pydoc3
+        sudo rm -f /usr/local/bin/python3
+        sudo rm -f /usr/local/bin/python3-config
+        sudo rm -f /usr/local/bin/pip3
+        sudo ln -sf $(brew --prefix python@3.12)/bin/python3 /usr/local/bin/python3
+        sudo ln -sf $(brew --prefix python@3.12)/bin/pip3 /usr/local/bin/pip3
+  
+    - name: Debug Python installation
+      run: |
+        which python3
+        python3 --version
+        which pip3
+        pip3 --version
+        echo $PATH
+        ls -l /usr/local/bin | grep python
+        ls -l /usr/local/bin | grep pip
+        
     - name: Install dependencies
       run: |
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
@@ -43,26 +64,7 @@ jobs:
           brew link --overwrite python@3.12
         fi
 
-    - name: Manage Python symlinks
-      run: |
-        sudo rm -f /usr/local/bin/2to3
-        sudo rm -f /usr/local/bin/idle3
-        sudo rm -f /usr/local/bin/pydoc3
-        sudo rm -f /usr/local/bin/python3
-        sudo rm -f /usr/local/bin/python3-config
-        sudo rm -f /usr/local/bin/pip3
-        sudo ln -sf $(brew --prefix python@3.12)/bin/python3 /usr/local/bin/python3
-        sudo ln -sf $(brew --prefix python@3.12)/bin/pip3 /usr/local/bin/pip3
 
-    - name: Debug Python installation
-      run: |
-        which python3
-        python3 --version
-        which pip3
-        pip3 --version
-        echo $PATH
-        ls -l /usr/local/bin | grep python
-        ls -l /usr/local/bin | grep pip
 
 
     - name: Install dependencies

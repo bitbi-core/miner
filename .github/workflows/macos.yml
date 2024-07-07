@@ -34,6 +34,7 @@ jobs:
           CXXFLAGS="-arch x86_64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
           LDFLAGS="-arch x86_64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
         fi
+        
         echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
         echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET" >> $GITHUB_ENV
         echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
@@ -43,7 +44,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install git cmake automake autoconf libtool pkg-config libpsl openssl@3
+        brew install git cmake automake autoconf libtool pkg-config libpsl openssl@3 zstd
         curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
         POW_HOME=$HOME/pow
         mkdir -p $POW_HOME
@@ -74,8 +75,13 @@ jobs:
         curl -sL https://curl.se/download/curl-8.6.0.tar.gz -o curl.tar.gz
         tar -xzf curl.tar.gz
         cd curl-8.6.0
-        PKG_CONFIG_PATH="/usr/local/opt/libpsl/lib/pkgconfig:/usr/local/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH" \
+        echo "------debug------"
+        echo "CFLAGS: $CFLAGS"
+        echo "CXXFLAGS: $CXXFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "------debug end------"
         ./configure --without-ssl \
+                    --without-libpsl \
                     --disable-shared \
                     --enable-static \
                     --disable-ldap \
@@ -93,11 +99,10 @@ jobs:
                     --disable-gopher \
                     --disable-smb \
                     --without-libidn \
-                    --disable-proxy \
                     --host=${{ matrix.config.arch }}-apple-darwin \
-                    CFLAGS="$CFLAGS -I/usr/local/opt/libpsl/include -I/usr/local/opt/openssl@3/include" \
-                    CXXFLAGS="$CXXFLAGS -I/usr/local/opt/libpsl/include -I/usr/local/opt/openssl@3/include" \
-                    LDFLAGS="$LDFLAGS -L/usr/local/opt/libpsl/lib -L/usr/local/opt/openssl@3/lib"
+                    CFLAGS="$CFLAGS -I/usr/local/opt/zstd/include" \
+                    CXXFLAGS="$CXXFLAGS -I/usr/local/opt/zstd/include" \
+                    LDFLAGS="$LDFLAGS -L/usr/local/opt/zstd/lib"
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..

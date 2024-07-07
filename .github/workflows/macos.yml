@@ -128,25 +128,37 @@ jobs:
         ./autogen.sh
         ./nomacro.pl
         POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
-        ls $POW_HOME
-        ls $POW_HOME/build
         CURL_DIR=/usr/local
-        echo "======debug====="
-        echo "CURL_LIB file: `ls $CURL_DIR/lib/*curl*`"
-        echo "CURL_INCLUDE file: `ls $CURL_DIR/include/*curl*`"
-        echo "======debug end====="
-
-        echo "./configure CPPFLAGS=\"-I$POW_HOME/src -I$CURL_DIR/include \$CFLAGS\" \\
-                    LDFLAGS=\"\$LDFLAGS -L$CURL_DIR/lib\" \\
-                    LIBS=\"-L$POW_HOME/build -lrandomx -L$CURL_DIR/lib  -lcurl -lz\" \\
-                    --host=\${{ matrix.config.arch }}-apple-darwin"
         
+        # Debug information
+        echo "==== Debug Info ===="
+        echo "CURL_DIR: $CURL_DIR"
+        echo "curl-config location: $(which curl-config)"
+        echo "curl-config version: $(curl-config --version)"
+        echo "curl-config libs: $(curl-config --libs)"
+        echo "curl-config static-libs: $(curl-config --static-libs)"
+        echo "libcurl.a location: $(find $CURL_DIR -name libcurl.a)"
+        echo "CPPFLAGS: $CPPFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "===================="
+
+        PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
         ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
                     LDFLAGS="$LDFLAGS -L$CURL_DIR/lib" \
-                    LIBS="-L$POW_HOME/build -lrandomx -L$CURL_DIR/lib  -lcurl -lz" \
-                    --host=${{ matrix.config.arch }}-apple-darwin 
-
-        make -j$(sysctl -n hw.logicalcpu)
+                    LIBS="-L$POW_HOME/build -lrandomx -lcurl -lz" \
+                    LIBCURL_CFLAGS="-I$CURL_DIR/include" \
+                    LIBCURL_LIBS="-L$CURL_DIR/lib -lcurl" \
+                    CURL_CONFIG=$CURL_DIR/bin/curl-config \
+                    --host=${{ matrix.config.arch }}-apple-darwin \
+                    --with-libcurl=$CURL_DIR
+        
+        # If configure fails, print config.log
+        if [ $? -ne 0 ]; then
+          echo "Configure failed. Contents of config.log:"
+          cat config.log
+        else
+          make -j$(sysctl -n hw.logicalcpu)
+        fi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

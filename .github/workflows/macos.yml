@@ -25,7 +25,7 @@ jobs:
         cd $POW_HOME/pow-${{ matrix.pow_version }}
         mkdir build
         cd build
-        ARCH = ${{ matrix.arch }}
+        ARCH=${{ matrix.arch }}
         cmake -DCMAKE_OSX_ARCHITECTURES=$(ARCH) \
           -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_SYSTEM_PROCESSOR=$(ARCH) \
           -DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk \

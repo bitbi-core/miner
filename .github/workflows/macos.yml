@@ -130,7 +130,7 @@ jobs:
         echo "./configure CPPFLAGS=\"-I$POW_HOME/src -I$CURL_DIR/include \$CFLAGS\" \\
                     LDFLAGS=\"\$LDFLAGS -L$CURL_DIR/lib\" \\
                     LIBS=\"-L$POW_HOME/build -lrandomx -L$CURL_DIR/lib  -lcurl -lz\" \\
-                    --host=\${{ matrix.config.arch }}-apple-darwin 
+                    --host=\${{ matrix.config.arch }}-apple-darwin"
         
         ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
                     LDFLAGS="$LDFLAGS -L$CURL_DIR/lib" \

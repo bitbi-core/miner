@@ -25,7 +25,14 @@ jobs:
         cd $POW_HOME/pow-${{ matrix.pow_version }}
         mkdir build
         cd build
-        cmake -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} ..
+        ARCH = ${{ matrix.arch }}
+        cmake -DCMAKE_OSX_ARCHITECTURES=$(ARCH) \
+          -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_SYSTEM_PROCESSOR=$(ARCH) \
+          -DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk \
+          -DCMAKE_C_FLAGS="-target $(ARCH)-apple-macos11.0" \
+          -DCMAKE_CXX_FLAGS="-target $(ARCH)-apple-macos11.0" \
+          -DCMAKE_EXE_LINKER_FLAGS="-target $(ARCH)-apple-macos11.0" ..
+
         make -j$(sysctl -n hw.logicalcpu)
         ls $POW_HOME/pow-${{ matrix.pow_version }}/build
 

@@ -25,6 +25,24 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install dependencies
+      run: |
+        if [ "${{ matrix.arch }}" == "x86_64" ]; then
+          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.bash_profile
+          eval "$(/usr/local/bin/brew shellenv)"
+          arch -x86_64 brew install cmake automake autoconf libtool pkg-config llvm openssl
+          arch -x86_64 brew install curl --force
+          arch -x86_64 brew link --force curl
+          arch -x86_64 brew install python@3.12
+          arch -x86_64 brew link --overwrite python@3.12
+        else
+          brew install cmake automake autoconf libtool pkg-config llvm openssl curl
+          brew link --force curl
+          brew install python@3.12
+          brew link --overwrite python@3.12
+        fi
+
     - name: Manage Python symlinks
       run: |
         sudo rm -f /usr/local/bin/2to3
@@ -32,11 +50,9 @@ jobs:
         sudo rm -f /usr/local/bin/pydoc3
         sudo rm -f /usr/local/bin/python3
         sudo rm -f /usr/local/bin/python3-config
-        sudo ln -sf $pythonLocation/bin/python3 /usr/local/bin/python3
-        if [ -L /usr/local/bin/pip3 ]; then
-          sudo rm -f /usr/local/bin/pip3
-        fi
-        sudo ln -sf $pythonLocation/bin/pip3 /usr/local/bin/pip3
+        sudo rm -f /usr/local/bin/pip3
+        sudo ln -sf $(brew --prefix python@3.12)/bin/python3 /usr/local/bin/python3
+        sudo ln -sf $(brew --prefix python@3.12)/bin/pip3 /usr/local/bin/pip3
 
     - name: Debug Python installation
       run: |
@@ -47,6 +63,7 @@ jobs:
         echo $PATH
         ls -l /usr/local/bin | grep python
         ls -l /usr/local/bin | grep pip
+
 
     - name: Install dependencies
       run: |

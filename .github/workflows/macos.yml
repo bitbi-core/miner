@@ -125,37 +125,12 @@ jobs:
         ./autogen.sh
         ./nomacro.pl
         POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
-        CURL_DIR=/usr/local
+        ls $POW_HOME
+        ls $POW_HOME/build
+        ./configure CPPFLAGS=" -I$POW_HOME/src " LIBS="-L$POW_HOME/build -lrandomx  -lcurl"
+        make -j$(sysctl -n hw.logicalcpu)
+        mv ./minerd ./minerd-macos-${{ matrix.config.os }}
         
-        # Debug information
-        echo "==== Debug Info ===="
-        echo "CURL_DIR: $CURL_DIR"
-        echo "curl-config location: $(which curl-config)"
-        echo "curl-config version: $(curl-config --version)"
-        echo "curl-config libs: $(curl-config --libs)"
-        echo "curl-config static-libs: $(curl-config --static-libs)"
-        echo "libcurl.a location: $(find $CURL_DIR -name libcurl.a)"
-        echo "CPPFLAGS: $CPPFLAGS"
-        echo "LDFLAGS: $LDFLAGS"
-        echo "===================="
-        SDKROOT=""
-        CFLAGS="-arch arm64 "
-        CXXFLAGS="-arch arm64 "
-        LDFLAGS="-arch arm64 "
-        echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
-        echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
-        echo "CXXFLAGS=$CXXFLAGS" >> $GITHUB_ENV
-        echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
-        ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
-                    LIBS="-L$POW_HOME/build -L$CURL_DIR/lib  -lrandomx -lcurl -lz" 
-        
-        # If configure fails, print config.log
-        if [ $? -ne 0 ]; then
-          echo "Configure failed. Contents of config.log:"
-          cat config.log
-        else
-          make -j$(sysctl -n hw.logicalcpu)
-        fi
     - name: Upload config.log
       if: failure() # Only run this step if a previous step failed
       uses: actions/upload-artifact@v2

@@ -25,7 +25,7 @@ jobs:
         CURL_VERSION=$(curl-config --version | awk '{print $2}')
         curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
         cd curl-${CURL_VERSION}
-        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp
+        ./configure --disable-shared --without-ssl --enable-static --disable-ldap --without-librtmp
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..

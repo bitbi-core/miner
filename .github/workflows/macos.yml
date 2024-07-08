@@ -138,7 +138,14 @@ jobs:
         echo "CPPFLAGS: $CPPFLAGS"
         echo "LDFLAGS: $LDFLAGS"
         echo "===================="
-        PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
+        SDKROOT=""
+        CFLAGS="-arch arm64 "
+        CXXFLAGS="-arch arm64 "
+        LDFLAGS="-arch arm64 "
+        echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
+        echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
+        echo "CXXFLAGS=$CXXFLAGS" >> $GITHUB_ENV
+        echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
         ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
                     LIBS="-L$POW_HOME/build -L$CURL_DIR/lib  -lrandomx -lcurl -lz" 
         

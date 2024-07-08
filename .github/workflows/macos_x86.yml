@@ -1,0 +1,169 @@
+name: build-macos-x86
+
+on:
+  push:
+    branches: [ "mcicd-test" ]
+  pull_request:
+
+jobs:
+  build-macos:
+
+    timeout-minutes: 15
+    runs-on: ${{ matrix.config.os }}
+
+    strategy:
+      matrix:
+        config:
+          - {os: macos-14, pow_version: 0.2.2, arch: x86_64}
+          # - {os: macos-14, pow_version: 0.2.2, arch: arm64}
+
+    steps:
+    - name: Set up build environment
+      run: |
+        sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+        if [ "${{ matrix.config.arch }}" == "arm64" ]; then
+          SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
+          MACOSX_DEPLOYMENT_TARGET=11.0
+          CFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          CXXFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          LDFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+        else
+          SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
+          MACOSX_DEPLOYMENT_TARGET=10.15
+          CFLAGS="-arch x86_64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          CXXFLAGS="-arch x86_64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          LDFLAGS="-arch x86_64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+        fi
+        
+        echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
+        echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET" >> $GITHUB_ENV
+        echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
+        echo "CXXFLAGS=$CXXFLAGS" >> $GITHUB_ENV
+        echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
+        echo "ARCH=${{ matrix.config.arch }}" >> $GITHUB_ENV
+    - name: Install dependencies
+      run: |
+        brew install git cmake automake autoconf libtool pkg-config libpsl openssl@3 zstd
+        curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
+        POW_HOME=$HOME/pow
+        mkdir -p $POW_HOME
+        unzip pow.zip -d $POW_HOME
+        cd $POW_HOME/pow-${{matrix.config.pow_version}}
+        mkdir build
+        cd build
+        echo "======debug====="
+        echo "SDKROOT: $SDKROOT"
+        echo "MACOSX_DEPLOYMENT_TARGET: $MACOSX_DEPLOYMENT_TARGET"
+        echo "CFLAGS: $CFLAGS"
+        echo "CXXFLAGS: $CXXFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "ARCH: $ARCH"
+        ls -l $SDKROOT/usr/lib
+        echo "======debug end======"
+        cmake -DCMAKE_OSX_ARCHITECTURES=$ARCH -DCMAKE_SYSTEM_NAME=Darwin \
+          -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
+          -DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk \
+          -DCMAKE_C_FLAGS="-target $ARCH-apple-macos11.0" \
+          -DCMAKE_CXX_FLAGS="-target $ARCH-apple-macos11.0" \
+          -DCMAKE_EXE_LINKER_FLAGS="-target $ARCH-apple-macos11.0" ..
+        make -j$(sysctl -n hw.logicalcpu)
+        ls $POW_HOME/pow-${{matrix.config.pow_version}}/build
+    - name: Build libcurl from source
+      run: |
+        curl -sL https://curl.se/download/curl-8.6.0.tar.gz -o curl.tar.gz
+        tar -xzf curl.tar.gz
+        cd curl-8.6.0
+        echo "------debug------"
+        echo "CFLAGS: $CFLAGS"
+        echo "CXXFLAGS: $CXXFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "------debug end------"
+        ./configure --without-ssl \
+                    --without-libpsl \
+                    --disable-shared \
+                    --enable-static \
+                    --disable-ldap \
+                    --disable-sspi \
+                    --without-librtmp \
+                    --disable-ftp \
+                    --disable-file \
+                    --disable-dict \
+                    --disable-telnet \
+                    --disable-tftp \
+                    --disable-rtsp \
+                    --disable-pop3 \
+                    --disable-imap \
+                    --disable-smtp \
+                    --disable-gopher \
+                    --disable-smb \
+                    --without-libidn \
+                    --host=${{ matrix.config.arch }}-apple-darwin \
+                    CFLAGS="$CFLAGS -I/usr/local/opt/zstd/include" \
+                    CXXFLAGS="$CXXFLAGS -I/usr/local/opt/zstd/include" \
+                    LDFLAGS="$LDFLAGS -L/usr/local/opt/zstd/lib"
+        make -j$(sysctl -n hw.logicalcpu)
+        sudo make install
+        cd ..
+        echo "======debug====="
+        # Verify installation
+        echo "Curl version:"
+        /usr/local/bin/curl --version
+        echo "Curl-config version:"
+        /usr/local/bin/curl-config --version
+        echo "Curl static libs:"
+        /usr/local/bin/curl-config --static-libs
+        echo "======debug end====="
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Build Miner
+      run: |
+        export ACLOCAL_PATH="$(pwd)/m4:$ACLOCAL_PATH"
+        echo $ACLOCAL_PATH
+        ./autogen.sh
+        ./nomacro.pl
+        POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
+        CURL_DIR=/usr/local
+        
+        # Debug information
+        echo "==== Debug Info ===="
+        echo "CURL_DIR: $CURL_DIR"
+        echo "curl-config location: $(which curl-config)"
+        echo "curl-config version: $(curl-config --version)"
+        echo "curl-config libs: $(curl-config --libs)"
+        echo "curl-config static-libs: $(curl-config --static-libs)"
+        echo "libcurl.a location: $(find $CURL_DIR -name libcurl.a)"
+        echo "CPPFLAGS: $CPPFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "===================="
+        PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
+        ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
+                    LDFLAGS="$LDFLAGS -L$CURL_DIR/lib -framework CoreFoundation -framework SystemConfiguration" \
+                    LIBS="-L$POW_HOME/build -lrandomx -lcurl -lz" \
+                    LIBCURL_CFLAGS="-I$CURL_DIR/include" \
+                    LIBCURL_LIBS="-L$CURL_DIR/lib -lcurl -framework CoreFoundation -framework SystemConfiguration" \
+                    CURL_CONFIG=$CURL_DIR/bin/curl-config \
+                    --host=${{ matrix.config.arch }}-apple-darwin \
+                    --with-libcurl=$CURL_DIR
+        
+        # If configure fails, print config.log
+        if [ $? -ne 0 ]; then
+          echo "Configure failed. Contents of config.log:"
+          cat config.log
+        else
+          make -j$(sysctl -n hw.logicalcpu)
+        fi
+    - name: Upload config.log
+      if: failure() # Only run this step if a previous step failed
+      uses: actions/upload-artifact@v2
+      with:
+        name: config.log
+        path: ./config.log
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-${{ matrix.config.os }}-${{ matrix.config.arch }}
+        path: ./minerd

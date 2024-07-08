@@ -1,0 +1,76 @@
+name: build-macos-arm64
+
+on:
+  push:
+    branches: [ "mcicd-test" ]
+  pull_request:
+
+jobs:
+  build-macos:
+    timeout-minutes: 5
+    runs-on: ${{ matrix.config.os }}
+    
+    strategy:
+      matrix:
+        config:
+          - {os: macos-14, pow_version: 0.2.2}
+    
+    steps:
+    - name: Install dependencies
+      run: |
+        brew install git cmake automake autoconf libtool pkg-config
+        
+        # Build static curl library
+        brew install curl
+        CURL_VERSION=$(curl-config --version | awk '{print $2}')
+        curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
+        cd curl-${CURL_VERSION}
+        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp
+        make -j$(sysctl -n hw.logicalcpu)
+        sudo make install
+        cd ..
+        
+        curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
+        POW_HOME=$HOME/pow
+        mkdir -p $POW_HOME
+        unzip pow.zip -d $POW_HOME
+        cd $POW_HOME/pow-${{matrix.config.pow_version}}
+        mkdir build
+        cd build
+        cmake ..
+        make -j$(sysctl -n hw.logicalcpu)
+        ls $POW_HOME/pow-${{matrix.config.pow_version}}/build
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    
+    - name: Build Miner
+      run: |
+        export ACLOCAL_PATH="$(pwd)/m4:$ACLOCAL_PATH"
+        echo $ACLOCAL_PATH
+        ./autogen.sh
+        ./nomacro.pl
+        POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
+        ls $POW_HOME
+        ls $POW_HOME/build
+        
+        # Use static linking for curl and other libraries
+        export LDFLAGS="-L/usr/local/opt/openssl/lib -L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/opt/openssl/include -I$POW_HOME/src"
+        export PKG_CONFIG_PATH="/usr/local/opt/openssl/lib/pkgconfig"
+        
+        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-L$POW_HOME/build -lrandomx -lcurl -lssl -lcrypto -lz" --with-curl="/usr/local"
+        
+        make -j$(sysctl -n hw.logicalcpu)
+        mv ./minerd ./minerd-macos-arm64
+        
+        # Ensure compatibility with all Apple silicon Macs
+        lipo -archs ./minerd-macos-arm64
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-${{ matrix.config.os }}
+        path: ./minerd-macos-arm64

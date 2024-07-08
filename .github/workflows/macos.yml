@@ -22,7 +22,7 @@ jobs:
       run: |
         sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
         if [ "${{ matrix.config.arch }}" == "arm64" ]; then
-          # SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
+          SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
           # MACOSX_DEPLOYMENT_TARGET=11.0
           # CFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
           # CXXFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"

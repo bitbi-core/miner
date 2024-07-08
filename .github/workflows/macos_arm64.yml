@@ -29,6 +29,8 @@ jobs:
         make -j$(sysctl -n hw.logicalcpu)
         make install
         
+        # echo current dir
+        echo "Current directory: $(pwd)"
         echo "Curl build complete. Checking installation:"
         ls -R curl_install
         

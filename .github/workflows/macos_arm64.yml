@@ -28,6 +28,15 @@ jobs:
         ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl --prefix=$(pwd)/curl_install
         make -j$(sysctl -n hw.logicalcpu)
         make install
+        
+        echo "Curl build complete. Checking installation:"
+        ls -R curl_install
+        
+        if [ ! -d "curl_install/lib" ]; then
+          echo "Error: curl_install/lib directory not found"
+          exit 1
+        fi
+        
         cd ..
 
         # Build pow library
@@ -58,7 +67,7 @@ jobs:
         CURL_HOME=$(pwd)/curl-${CURL_VERSION}/curl_install
         
         echo "CURL_HOME: $CURL_HOME"
-        ls -l $CURL_HOME/lib
+        ls -R $CURL_HOME
         
         # Use static linking for all libraries
         export LDFLAGS="-L$CURL_HOME/lib -L$POW_HOME/build"
@@ -74,7 +83,7 @@ jobs:
         lipo -archs ./minerd-macos-arm64
 
     - name: Upload config.log
-      if: failure() # Only run this step if a previous step failed
+      if: failure()
       uses: actions/upload-artifact@v2
       with:
         name: config.log

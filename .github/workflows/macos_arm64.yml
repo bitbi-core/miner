@@ -26,7 +26,8 @@ jobs:
         curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
         cd curl-${CURL_VERSION}
         ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl
-        make -j$(sysctl -n hw.logicalcpu)
+        make -j$(sysctl -n hw.logicalcpu) -V
+        echo "======installing====="
         sudo make install
         cd ..
         

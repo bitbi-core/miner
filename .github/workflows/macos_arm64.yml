@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-macos:
-    timeout-minutes: 5
+    timeout-minutes: 15  # Increased timeout due to additional build steps
     runs-on: ${{ matrix.config.os }}
     
     strategy:
@@ -18,14 +18,22 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        brew install git cmake automake autoconf libtool pkg-config libpsl
+        brew install git cmake automake autoconf libtool pkg-config
+        
+        # Build static libpsl
+        git clone https://github.com/rockdaboot/libpsl.git
+        cd libpsl
+        ./autogen.sh
+        ./configure --disable-shared --enable-static
+        make -j$(sysctl -n hw.logicalcpu)
+        sudo make install
+        cd ..
         
         # Build static curl library
-        brew install curl
-        CURL_VERSION=$(curl-config --version | awk '{print $2}')
+        CURL_VERSION=$(curl --version | awk '{print $2}' | head -n 1)
         curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
         cd curl-${CURL_VERSION}
-        ./configure --disable-shared --without-ssl --enable-static --disable-ldap --without-librtmp
+        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --with-libpsl
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..
@@ -56,12 +64,12 @@ jobs:
         ls $POW_HOME
         ls $POW_HOME/build
         
-        # Use static linking for curl and other libraries
+        # Use static linking for curl, libpsl, and other libraries
         export LDFLAGS="-L/usr/local/opt/openssl/lib -L/usr/local/lib"
-        export CPPFLAGS="-I/usr/local/opt/openssl/include -I$POW_HOME/src"
-        export PKG_CONFIG_PATH="/usr/local/opt/openssl/lib/pkgconfig"
+        export CPPFLAGS="-I/usr/local/opt/openssl/include -I$POW_HOME/src -I/usr/local/include"
+        export PKG_CONFIG_PATH="/usr/local/opt/openssl/lib/pkgconfig:/usr/local/lib/pkgconfig"
         
-        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-L$POW_HOME/build -lrandomx -lcurl -lssl -lcrypto -lz" --with-curl="/usr/local"
+        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-L$POW_HOME/build -lrandomx -lcurl -lssl -lcrypto -lz -lpsl -lidn2 -lunistring" --with-curl="/usr/local"
         
         make -j$(sysctl -n hw.logicalcpu)
         mv ./minerd ./minerd-macos-arm64

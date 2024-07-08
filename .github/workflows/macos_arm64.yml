@@ -24,13 +24,12 @@ jobs:
         CURL_VERSION=$(curl --version | awk '{print $2}' | head -n 1)
         curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
         cd curl-${CURL_VERSION}
-        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl
+        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl --prefix=$(pwd)/curl_install
         make -j$(sysctl -n hw.logicalcpu)
-        echo "======installing====="
-        sudo make install-exec
-        sudo make install-data-local
+        make install
         cd ..
 
+        # Build pow library
         curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
         POW_HOME=$HOME/pow
         mkdir -p $POW_HOME
@@ -54,15 +53,14 @@ jobs:
         ./autogen.sh
         ./nomacro.pl
         POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
-        ls $POW_HOME
-        ls $POW_HOME/build
+        CURL_HOME=$(pwd)/curl-${CURL_VERSION}/curl_install
         
         # Use static linking for all libraries
-        export LDFLAGS="-L/usr/local/opt/openssl/lib -L/usr/local/lib"
-        export CPPFLAGS="-I/usr/local/opt/openssl/include -I$POW_HOME/src -I/usr/local/include"
-        export PKG_CONFIG_PATH="/usr/local/opt/openssl/lib/pkgconfig:/usr/local/lib/pkgconfig"
+        export LDFLAGS="-L$CURL_HOME/lib -L$POW_HOME/build"
+        export CPPFLAGS="-I$CURL_HOME/include -I$POW_HOME/src"
+        export PKG_CONFIG_PATH="$CURL_HOME/lib/pkgconfig:$PKG_CONFIG_PATH"
         
-        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-L$POW_HOME/build -lrandomx -lcurl -lssl -lcrypto -lz" --with-curl="/usr/local"
+        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-lrandomx -lcurl -lz" --with-curl="$CURL_HOME"
         
         make -j$(sysctl -n hw.logicalcpu)
         mv ./minerd ./minerd-macos-arm64

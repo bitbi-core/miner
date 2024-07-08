@@ -67,6 +67,13 @@ jobs:
         
         # Ensure compatibility with all Apple silicon Macs
         lipo -archs ./minerd-macos-arm64
+        
+    - name: Upload config.log
+      if: failure() # Only run this step if a previous step failed
+      uses: actions/upload-artifact@v2
+      with:
+        name: config.log
+        path: ./config.log
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

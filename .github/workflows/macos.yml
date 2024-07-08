@@ -22,11 +22,11 @@ jobs:
       run: |
         sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
         if [ "${{ matrix.config.arch }}" == "arm64" ]; then
-          SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
-          MACOSX_DEPLOYMENT_TARGET=11.0
-          CFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
-          CXXFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
-          LDFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          # SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
+          # MACOSX_DEPLOYMENT_TARGET=11.0
+          # CFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          # CXXFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+          # LDFLAGS="-arch arm64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
         else
           SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
           MACOSX_DEPLOYMENT_TARGET=10.15
@@ -35,11 +35,11 @@ jobs:
           LDFLAGS="-arch x86_64 -isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
         fi
         
-        echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
-        echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET" >> $GITHUB_ENV
-        echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
-        echo "CXXFLAGS=$CXXFLAGS" >> $GITHUB_ENV
-        echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
+        # echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
+        # echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET" >> $GITHUB_ENV
+        # echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
+        # echo "CXXFLAGS=$CXXFLAGS" >> $GITHUB_ENV
+        # echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
         echo "ARCH=${{ matrix.config.arch }}" >> $GITHUB_ENV
     - name: Install dependencies
       run: |
@@ -130,7 +130,7 @@ jobs:
         ./configure CPPFLAGS=" -I$POW_HOME/src " LIBS="-L$POW_HOME/build -lrandomx  -lcurl"
         make -j$(sysctl -n hw.logicalcpu)
         mv ./minerd ./minerd-macos-${{ matrix.config.os }}
-        
+
     - name: Upload config.log
       if: failure() # Only run this step if a previous step failed
       uses: actions/upload-artifact@v2

@@ -24,7 +24,7 @@ jobs:
         LIBUNISTRING_VERSION=1.1
         curl -L https://ftp.gnu.org/gnu/libunistring/libunistring-${LIBUNISTRING_VERSION}.tar.xz | tar xJ
         cd libunistring-${LIBUNISTRING_VERSION}
-        ./configure --disable-shared --enable-static
+        ./configure --disable-shared --enable-static --without-ssl
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..
@@ -33,7 +33,7 @@ jobs:
         LIBIDN2_VERSION=2.3.4
         curl -L https://ftp.gnu.org/gnu/libidn/libidn2-${LIBIDN2_VERSION}.tar.gz | tar xz
         cd libidn2-${LIBIDN2_VERSION}
-        ./configure --disable-shared --enable-static
+        ./configure --disable-shared --enable-static --without-ssl
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..
@@ -42,7 +42,7 @@ jobs:
         git clone https://github.com/rockdaboot/libpsl.git
         cd libpsl
         ./autogen.sh
-        ./configure --disable-shared --enable-static
+        ./configure --disable-shared --enable-static --without-ssl
         make -j$(sysctl -n hw.logicalcpu)
         sudo make install
         cd ..

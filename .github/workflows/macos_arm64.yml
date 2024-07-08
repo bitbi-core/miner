@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-macos:
-    timeout-minutes: 20  # Increased timeout due to additional build steps
+    timeout-minutes: 20
     runs-on: ${{ matrix.config.os }}
     
     strategy:
@@ -19,18 +19,18 @@ jobs:
     - name: Install dependencies
       run: |
         brew install git cmake automake autoconf libtool pkg-config
-        
-        
+
         # Build static curl library
         CURL_VERSION=$(curl --version | awk '{print $2}' | head -n 1)
         curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
         cd curl-${CURL_VERSION}
-        ./configure --disable-manual --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl
-        make -j1
+        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl
+        make -j$(sysctl -n hw.logicalcpu)
         echo "======installing====="
-        sudo make install
+        sudo make install-exec
+        sudo make install-data-local
         cd ..
-        
+
         curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
         POW_HOME=$HOME/pow
         mkdir -p $POW_HOME
@@ -62,7 +62,7 @@ jobs:
         export CPPFLAGS="-I/usr/local/opt/openssl/include -I$POW_HOME/src -I/usr/local/include"
         export PKG_CONFIG_PATH="/usr/local/opt/openssl/lib/pkgconfig:/usr/local/lib/pkgconfig"
         
-        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-L$POW_HOME/build -lrandomx -lcurl -lssl -lcrypto -lz -lpsl -lidn2 -lunistring" --with-curl="/usr/local"
+        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS -static" LIBS="-L$POW_HOME/build -lrandomx -lcurl -lssl -lcrypto -lz" --with-curl="/usr/local"
         
         make -j$(sysctl -n hw.logicalcpu)
         mv ./minerd ./minerd-macos-arm64

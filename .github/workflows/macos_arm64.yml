@@ -18,7 +18,7 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        brew install git cmake automake autoconf libtool pkg-config
+        brew install git cmake automake autoconf libtool pkg-config jansson
         WD=$(pwd)
         # Build static curl library
         CURL_VERSION=$(curl --version | awk '{print $2}' | head -n 1)
@@ -72,11 +72,14 @@ jobs:
         ls -R $CURL_HOME
         
         # Use static linking for all libraries
-        export LDFLAGS="-L$CURL_HOME/lib -L$POW_HOME/build"
-        export CPPFLAGS="-I$CURL_HOME/include -I$POW_HOME/src"
-        export PKG_CONFIG_PATH="$CURL_HOME/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export LDFLAGS="-L$CURL_HOME/lib -L$POW_HOME/build -L/usr/local/opt/jansson/lib"
+        export CPPFLAGS="-I$CURL_HOME/include -I$POW_HOME/src -I/usr/local/opt/jansson/include"
+        export PKG_CONFIG_PATH="$CURL_HOME/lib/pkgconfig:/usr/local/opt/jansson/lib/pkgconfig:$PKG_CONFIG_PATH"
         
-        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" LIBS="-lrandomx -lcurl -lz" --with-curl="$CURL_HOME"
+        # Add these flags to ensure proper inclusion of system headers
+        export CFLAGS="-g -O2 -Wall -Wextra -Werror=implicit-function-declaration -Wno-deprecated-declarations"
+        
+        ./configure CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" LIBS="-lrandomx -lcurl -lz -ljansson" --with-curl="$CURL_HOME"
         
         make -j$(sysctl -n hw.logicalcpu)
         mv ./minerd ./minerd-macos-arm64

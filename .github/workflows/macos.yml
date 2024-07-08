@@ -140,13 +140,7 @@ jobs:
         echo "===================="
         PKG_CONFIG_PATH=$CURL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH \
         ./configure CPPFLAGS="-I$POW_HOME/src -I$CURL_DIR/include $CFLAGS" \
-                    LDFLAGS="$LDFLAGS " \
-                    LIBS="-L$POW_HOME/build -lrandomx -lcurl -lz" \
-                    LIBCURL_CFLAGS="-I$CURL_DIR/include" \
-                    LIBCURL_LIBS="-L$CURL_DIR/lib -lcurl " \
-                    CURL_CONFIG=$CURL_DIR/bin/curl-config \
-                    --host=${{ matrix.config.arch }}-apple-darwin \
-                    --with-libcurl=$CURL_DIR
+                    LIBS="-L$POW_HOME/build -L$CURL_DIR/lib  -lrandomx -lcurl -lz" 
         
         # If configure fails, print config.log
         if [ $? -ne 0 ]; then

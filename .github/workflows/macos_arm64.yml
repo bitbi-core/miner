@@ -19,27 +19,27 @@ jobs:
     - name: Install dependencies
       run: |
         brew install git cmake automake autoconf libtool pkg-config
-
+        WD=$(pwd)
         # Build static curl library
         CURL_VERSION=$(curl --version | awk '{print $2}' | head -n 1)
         curl -L https://curl.se/download/curl-${CURL_VERSION}.tar.gz | tar xz
-        cd curl-${CURL_VERSION}
-        mkdir curl_install
-        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl --prefix=$(pwd)/curl_install
+        mv curl-${CURL_VERSION} $HOME/curl
+        cd $HOME/curl
+        ./configure --disable-shared --enable-static --disable-ldap --without-librtmp --without-libpsl --without-ssl --prefix=./
         make -j$(sysctl -n hw.logicalcpu)
         make install
         
         # echo current dir
         echo "Current directory: $(pwd)"
         echo "Curl build complete. Checking installation:"
-        ls -R curl_install
+        ls -R .
         
-        if [ ! -d "curl_install/lib" ]; then
-          echo "Error: curl_install/lib directory not found"
+        if [ ! -d "lib" ]; then
+          echo "Error: lib directory not found"
           exit 1
         fi
         
-        cd ..
+        cd $WD
 
         # Build pow library
         curl -sL https://codeload.github.com/bitbi-core/pow/zip/refs/tags/v${{matrix.config.pow_version}} -o pow.zip
@@ -52,6 +52,7 @@ jobs:
         cmake ..
         make -j$(sysctl -n hw.logicalcpu)
         ls $POW_HOME/pow-${{matrix.config.pow_version}}/build
+        
 
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -65,9 +66,7 @@ jobs:
         ./autogen.sh
         ./nomacro.pl
         POW_HOME=$HOME/pow/pow-${{matrix.config.pow_version}}
-        CURL_VERSION=$(curl --version | awk '{print $2}' | head -n 1)
-        CURL_HOME=$(pwd)/curl-${CURL_VERSION}/curl_install
-        
+        CURL_HOME=$HOME/curl
         echo "CURL_HOME: $CURL_HOME"
         ls -R $CURL_HOME
         
